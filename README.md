@@ -1,8 +1,16 @@
-# Welcome to your Lovable project
+# Welcome to FLEX Project
 
-## Project info
+## Getting Started
 
-**URL**: https://lovable.dev/projects/ee9853f7-c7f1-4d0b-a93e-648634eb6538
+## Development
+
+### **Local Development**
+
+To work on this project locally:
+
+1. Clone this repository
+2. Install dependencies
+3. Start the development server
 
 ## How can I edit this code?
 
@@ -18,21 +26,66 @@ Changes made via Lovable will be committed automatically to this repo.
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+First, you'll need to install Node.js and npm. There are two ways to do this:
 
-Follow these steps:
+**Option 1: Using apt (Recommended for Ubuntu/Debian users)**
+
+1. Update your package list:
+```sh
+sudo apt update
+```
+
+2. Install Node.js and npm:
+```sh
+sudo apt install nodejs npm
+```
+
+3. Verify the installation:
+```sh
+node --version
+npm --version
+```
+
+**Option 2: Using nvm (Node Version Manager)**
+
+Alternatively, you can use nvm for managing multiple Node.js versions:
+
+1. Install nvm:
+```sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+```
+
+2. Restart your terminal or run:
+```sh
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+```
+
+3. Install Node.js LTS version:
+```sh
+nvm install --lts
+nvm use --lts
+```
+
+4. Verify the installation:
+```sh
+node --version
+npm --version
+```
+
+Then, follow these steps to set up the project:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository using the project's Git URL
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Step 2: Navigate to the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install the necessary dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server with auto-reloading and an instant preview
 npm run dev
 ```
 
@@ -60,10 +113,4 @@ This project is built with .
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/ee9853f7-c7f1-4d0b-a93e-648634eb6538) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+You can deploy this project using your preferred hosting platform like Netlify, Vercel, or GitHub Pages.
