@@ -1,0 +1,14 @@
+# Backend dependencies
+fastapi==0.110.0
+uvicorn==0.27.1
+python-dotenv==1.0.1
+pydantic==2.6.3
+langchain==0.1.11
+langchain-openai==0.0.5
+openai==1.14.0
+python-multipart==0.0.9
+jwt==1.3.1
+python-jose==3.3.0
+passlib==1.7.4
+beanie==1.25.0
+motor==3.3.2
