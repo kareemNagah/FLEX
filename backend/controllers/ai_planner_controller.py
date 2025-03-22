@@ -1,16 +1,58 @@
 import os
 from typing import Dict, Any, List, Optional
 from models.ai_planner import WorkoutPlanRequest, WorkoutPlan, Exercise, WorkoutDay
-from langchain.llms import OpenAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain.output_parsers import PydanticOutputParser
 from datetime import datetime
 import json
 import uuid
+import google.generativeai as genai
+import pathlib
+from config import settings, GeminiModels
 
-# Get OpenAI API key from environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Configure Google Generative AI with the API key from settings
+try:
+    # Validate the API key
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it in your .env file.")
+
+    # Check if the API key has a valid format (basic check)
+    if not settings.gemini_api_key.startswith("AIza"):
+        raise ValueError("GEMINI_API_KEY appears to be invalid. Google API keys typically start with 'AIza'. Please check your .env file.")
+    
+    # Configure Gemini with the API key from settings and set API version
+    genai.configure(
+        api_key=settings.gemini_api_key,
+        transport="rest",
+        client_options={"api_endpoint": "generativelanguage.googleapis.com"}
+    )
+    
+    # Test the API key with a simple request
+    def test_gemini_api_key():
+        try:
+            # Use the model name from settings with correct API version
+            model = genai.GenerativeModel(
+                model_name=settings.gemini_model,
+                generation_config={
+                    "temperature": 0.9,
+                    "top_p": 1,
+                    "top_k": 1,
+                    "max_output_tokens": 2048,
+                }
+            )
+            response = model.generate_content("Hello, this is a test request to verify API key validity.")
+            return True
+        except Exception as e:
+            error_message = str(e).lower()
+            if "api key" in error_message or "authentication" in error_message or "unauthorized" in error_message:
+                raise ValueError(f"Invalid Gemini API key: {str(e)}. Please check your API key in the .env file.")
+            else:
+                raise Exception(f"Error testing Gemini API: {str(e)}")
+    
+    # Test the API key
+    test_gemini_api_key()
+    
+except Exception as e:
+    raise ValueError(f"Failed to configure Google Generative AI: {str(e)}. Please check your API key.")
+
 
 # Mock database for workout plans (replace with actual database in production)
 workout_plans_db = {}
@@ -18,58 +60,91 @@ workout_plans_db = {}
 class AIPlannerController:
     @staticmethod
     async def generate_workout_plan(request: WorkoutPlanRequest, user_id: Optional[str] = None) -> WorkoutPlan:
-        """Generate a workout plan using OpenAI and LangChain"""
-        # Initialize OpenAI LLM
-        llm = OpenAI(temperature=0.7, model_name="gpt-3.5-turbo", api_key=OPENAI_API_KEY)
+        """Generate a workout plan using Google's Gemini API"""
         
-        # Create output parser
-        parser = PydanticOutputParser(pydantic_object=WorkoutPlan)
-        
-        # Create prompt template
-        template = """
+        # Create prompt for OpenAI
+        prompt = f"""
         You are an expert fitness trainer. Create a detailed workout plan based on the following information:
         
-        Fitness Level: {fitness_level}
-        Goals: {goals}
-        Available Equipment: {available_equipment}
-        Workout Days Per Week: {workout_days_per_week}
-        Time Per Session: {time_per_session} minutes
-        Preferences: {preferences}
-        Limitations: {limitations}
+        Fitness Level: {request.fitness_level}
+        Goals: {request.goals}
+        Available Equipment: {request.available_equipment}
+        Workout Days Per Week: {request.workout_days_per_week}
+        Time Per Session: {request.time_per_session} minutes
+        Preferences: {request.preferences}
+        Limitations: {request.limitations}
         
         The workout plan should include:
         1. A title and description
         2. A list of workout days with specific exercises
         3. For each exercise, include sets, reps, rest time, and muscle groups targeted
         
-        {format_instructions}
+        Return the response as a valid JSON object with the following structure:
+        {{
+            "title": "Title of the workout plan",
+            "description": "Description of the workout plan",
+            "fitness_level": "The fitness level",
+            "goals": ["List", "of", "goals"],
+            "workout_days": [
+                {{
+                    "day": "Day name (e.g., 'Day 1', 'Monday')",
+                    "focus": "Focus of this workout day",
+                    "exercises": [
+                        {{
+                            "name": "Exercise name",
+                            "sets": number_of_sets,
+                            "reps": "rep scheme (e.g., '10', '8-12')",
+                            "rest_time": "rest time in seconds",
+                            "description": "Brief description",
+                            "equipment": ["Required", "equipment"],
+                            "muscle_groups": ["Targeted", "muscle", "groups"],
+                            "difficulty": "difficulty level",
+                            "instructions": "How to perform the exercise",
+                            "alternatives": ["Alternative", "exercises"]
+                        }}
+                    ],
+                    "warm_up": "Warm-up routine",
+                    "cool_down": "Cool-down routine",
+                    "total_time": "Estimated total time in minutes"
+                }}
+            ],
+            "notes": "Additional notes",
+            "metadata": {{
+                "any": "additional metadata"
+            }}
+        }}
         """
         
-        # Create prompt with format instructions
-        prompt = PromptTemplate(
-            template=template,
-            input_variables=[
-                "fitness_level", "goals", "available_equipment", 
-                "workout_days_per_week", "time_per_session", 
-                "preferences", "limitations"
-            ],
-            partial_variables={"format_instructions": parser.get_format_instructions()}
-        )
-        
-        # Create LLMChain
-        chain = LLMChain(llm=llm, prompt=prompt)
-        
         try:
-            # Run the chain
-            result = chain.run(
-                fitness_level=request.fitness_level,
-                goals=request.goals,
-                available_equipment=request.available_equipment,
-                workout_days_per_week=request.workout_days_per_week,
-                time_per_session=request.time_per_session,
-                preferences=request.preferences,
-                limitations=request.limitations
+            # Configure Gemini model
+            generation_config = {
+                "temperature": 0.2,
+                "response_mime_type": "application/json"
+            }
+            
+            # Initialize Gemini model
+            model = genai.GenerativeModel(
+                model_name=settings.gemini_model,
+                generation_config=generation_config
             )
+            
+            # Create system and user messages
+            system_message = "You are an expert fitness trainer who creates detailed workout plans."
+            full_prompt = system_message + "\n\n" + prompt
+            
+            # Call Gemini API
+            try:
+                response = model.generate_content(full_prompt)
+                
+                # Extract the response content
+                result = response.text
+            except Exception as e:
+                # Check if the error is related to the API key
+                error_message = str(e).lower()
+                if "api key" in error_message or "authentication" in error_message or "unauthorized" in error_message:
+                    raise ValueError(f"Invalid Gemini API key: {str(e)}. Please check your API key in the .env file.")
+                else:
+                    raise Exception(f"Error calling Gemini API: {str(e)}")
             
             # Parse the result
             workout_plan_dict = json.loads(result)
@@ -116,8 +191,11 @@ class AIPlannerController:
             
             return workout_plan
             
+        except ValueError as e:
+            # Re-raise ValueError for API key issues
+            raise e
         except Exception as e:
-            # Handle errors
+            # Handle other errors
             raise Exception(f"Error generating workout plan: {str(e)}")
     
     @staticmethod

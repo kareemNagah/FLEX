@@ -16,7 +16,8 @@ export const ApiService = {
       });
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} ${response.statusText}\n${errorText}`);
       }
       
       return await response.json();
@@ -38,12 +39,41 @@ export const ApiService = {
       });
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} ${response.statusText}\n${errorText}`);
       }
       
       return await response.json();
     } catch (error) {
       console.error(`POST request to ${API_BASE_URL}${endpoint} failed:`, error);
+      throw error;
+    }
+  },
+  
+  delete: async (endpoint: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+      
+      // For 204 No Content responses, return without trying to parse JSON
+      if (response.status === 204) {
+        return;
+      }
+      
+      // For other successful responses, parse JSON
+      return await response.json();
+    } catch (error) {
+      console.error(`DELETE request to ${API_BASE_URL}${endpoint} failed:`, error);
       throw error;
     }
   },
@@ -70,24 +100,6 @@ export const ApiService = {
     }
   },
 
-  delete: async <T>(endpoint: string): Promise<T> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(`DELETE request to ${API_BASE_URL}${endpoint} failed:`, error);
-      throw error;
-    }
-  }
+  // The delete method is already implemented above
+  // This is a duplicate that was removed to avoid conflicts
 };

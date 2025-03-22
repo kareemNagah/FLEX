@@ -54,12 +54,6 @@ const Navbar = () => {
         </nav>
 
         <div className="hidden md:flex items-center space-x-3">
-          <Link 
-            to="/login" 
-            className="px-4 py-2 rounded-full text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Login
-          </Link>
           <Link
             to="/ai-planner"
             className="cta-button"
@@ -121,13 +115,6 @@ const Navbar = () => {
             Tasks
           </Link>
           <div className="flex flex-col items-center space-y-4 pt-6 w-full">
-            <Link 
-              to="/login" 
-              className="w-full text-center px-4 py-2 rounded-full text-foreground/80 hover:text-foreground transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Login
-            </Link>
             <Link
               to="/ai-planner"
               className="w-full text-center cta-button"

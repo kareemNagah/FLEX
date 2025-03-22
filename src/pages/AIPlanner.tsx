@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIPlannerController } from '../controllers/AIPlannerController';
-import { UserPreferences, AIGeneratedPlan } from '../models/AIPlanner';
+import { UserPreferences, AIGeneratedPlan, AIGeneratedPlanResponse } from '../models/AIPlanner';
 import { toast } from '@/components/ui/use-toast';
 import Navbar from '../components/Navbar';
 import PlannerHeader from '../components/ai-planner/PlannerHeader';
@@ -11,12 +12,13 @@ import GeneratedPlan from '../components/ai-planner/GeneratedPlan';
 
 const AIPlanner = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState<UserPreferences>(
     AIPlannerController.getSamplePreferences()
   );
   const [generatedPlan, setGeneratedPlan] = useState<AIGeneratedPlan | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,28 +36,35 @@ const AIPlanner = () => {
     }));
   };
 
-  const generatePlan = async () => {
-    setIsGenerating(true);
-    
-    try {
-      const plan = await AIPlannerController.generatePlan(preferences);
-      setGeneratedPlan(plan);
+  const generatePlanMutation = useMutation({
+    mutationFn: (preferences: UserPreferences) => AIPlannerController.generatePlan(preferences),
+    onMutate: () => {
+      setIsGenerating(true);
+    },
+    onSuccess: (response: AIGeneratedPlan) => {
+      setGeneratedPlan(response);
       setIsEditing(false);
-      
+      queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
       toast({
         title: "Plan Generated!",
         description: "Your personalized schedule is ready to review.",
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error generating plan:", error);
       toast({
         title: "Generation Failed",
         description: "There was an error generating your plan. Please try again.",
         variant: "destructive",
       });
-    } finally {
+    },
+    onSettled: () => {
       setIsGenerating(false);
     }
+  });
+
+  const handleGeneratePlan = () => {
+    generatePlanMutation.mutate(preferences);
   };
 
   const savePlan = () => {
@@ -82,7 +91,7 @@ const AIPlanner = () => {
             isGenerating={isGenerating}
             onInputChange={handleInputChange}
             onNumberChange={handleNumberChange}
-            onGeneratePlan={generatePlan}
+            onGeneratePlan={handleGeneratePlan}
             hasGeneratedPlan={!!generatedPlan}
           />
 

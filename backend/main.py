@@ -1,14 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from dotenv import load_dotenv
 
 # Import routers
 from views.ai_planner_view import router as ai_planner_router
-from views.auth_view import router as auth_router
+from views.auth_router import router as auth_router
 
-# Load environment variables
-load_dotenv()
+# Import settings
+from config import settings
 
 # Create FastAPI app
 app = FastAPI(
@@ -27,8 +26,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth_router, prefix="/api", tags=["Authentication"])
 app.include_router(ai_planner_router, prefix="/api", tags=["AI Planner"])
+app.include_router(auth_router, prefix="/api", tags=["Authentication"])
 
 # Root endpoint
 @app.get("/")

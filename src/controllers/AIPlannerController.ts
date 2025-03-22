@@ -1,15 +1,24 @@
-import { AIGeneratedPlan, UserPreferences, ScheduleItem } from "../models/AIPlanner";
+import { 
+  AIGeneratedPlan, 
+  UserPreferences, 
+  ScheduleItem, 
+  WorkoutPlanRequest, 
+  WorkoutPlan, 
+  WorkoutPlanResponse 
+} from "../models/AIPlanner";
 import { ApiService } from "../services/ApiService";
 
 export class AIPlannerController {
-  private static ENDPOINT = '/ai-planner';
-  private static useApi = false; // Set to true when your FastAPI backend is ready
+  private static PRODUCTIVITY_ENDPOINT = '/ai-planner';
+  private static WORKOUT_ENDPOINT = '/ai-planner/generate';
+  private static useApi = true; // Set to true to use the FastAPI backend
 
+  // Original productivity planner method (keeping for backward compatibility)
   static async generatePlan(preferences: UserPreferences): Promise<AIGeneratedPlan> {
     try {
       if (this.useApi) {
         // Use the API service
-        return await ApiService.post<AIGeneratedPlan>(this.ENDPOINT, preferences);
+        return await ApiService.post<AIGeneratedPlan>(this.PRODUCTIVITY_ENDPOINT, preferences);
       } else {
         // Fallback to mock data
         console.log("Generating plan based on preferences:", preferences);
@@ -61,6 +70,97 @@ export class AIPlannerController {
     }
   }
 
+  // New method for generating workout plans using Gemini API
+  static async generateWorkoutPlan(request: WorkoutPlanRequest): Promise<WorkoutPlanResponse> {
+    try {
+      if (this.useApi) {
+        // Use the WorkoutPlannerService
+        return await WorkoutPlannerService.generateWorkoutPlan(request);
+      } else {
+        // Fallback to mock data
+        console.log("Generating workout plan based on request:", request);
+        
+        // Create a mock workout plan
+        const mockPlan: WorkoutPlan = {
+          id: "mock-1",
+          title: "Sample Workout Plan",
+          description: "A personalized workout plan based on your preferences",
+          fitness_level: request.fitness_level,
+          goals: request.goals,
+          workout_days: [
+            {
+              day: "Day 1",
+              focus: "Upper Body",
+              exercises: [
+                {
+                  name: "Push-ups",
+                  sets: 3,
+                  reps: "10-12",
+                  rest_time: "60s",
+                  muscle_groups: ["chest", "shoulders", "triceps"],
+                  difficulty: "beginner"
+                }
+              ]
+            }
+          ]
+        };
+        
+        return {
+          plan: mockPlan,
+          message: "Mock workout plan generated successfully"
+        };
+      }
+    } catch (error) {
+      console.error("Error generating workout plan:", error);
+      throw error;
+    }
+  }
+
+  // Get user's workout plans
+  static async getUserWorkoutPlans(): Promise<WorkoutPlan[]> {
+    try {
+      if (this.useApi) {
+        return await ApiService.get<WorkoutPlan[]>(`${this.WORKOUT_ENDPOINT.split('/')[1]}/plans`);
+      } else {
+        console.error('API is not enabled. Please set useApi to true to use the backend API.');
+        return [];
+      }
+    } catch (error) {
+      console.error('Failed to get user workout plans:', error);
+      throw error;
+    }
+  }
+
+  // Get a specific workout plan by ID
+  static async getWorkoutPlan(planId: string): Promise<WorkoutPlan> {
+    try {
+      if (this.useApi) {
+        return await ApiService.get<WorkoutPlan>(`${this.WORKOUT_ENDPOINT.split('/')[1]}/plans/${planId}`);
+      } else {
+        console.error('API is not enabled. Please set useApi to true to use the backend API.');
+        throw new Error('API is not enabled. Please set useApi to true to use the backend API.');
+      }
+    } catch (error) {
+      console.error(`Failed to get workout plan with ID ${planId}:`, error);
+      throw error;
+    }
+  }
+
+  // Delete a workout plan
+  static async deleteWorkoutPlan(planId: string): Promise<void> {
+    try {
+      if (this.useApi) {
+        await ApiService.delete(`${this.WORKOUT_ENDPOINT.split('/')[1]}/plans/${planId}`);
+      } else {
+        console.error('API is not enabled. Please set useApi to true to use the backend API.');
+        throw new Error('API is not enabled. Please set useApi to true to use the backend API.');
+      }
+    } catch (error) {
+      console.error(`Failed to delete workout plan with ID ${planId}:`, error);
+      throw error;
+    }
+  }
+
   static getSamplePreferences(): UserPreferences {
     return {
       wakeUpTime: "07:00",
@@ -68,6 +168,19 @@ export class AIPlannerController {
       focusPeriods: 4,
       breakDuration: 15,
       primaryGoal: "Complete React Project"
+    };
+  }
+
+  // Sample workout plan request for testing
+  static getSampleWorkoutPlanRequest(): WorkoutPlanRequest {
+    return {
+      fitness_level: "intermediate",
+      goals: ["Build muscle", "Improve strength"],
+      available_equipment: ["Dumbbells", "Barbell", "Bench"],
+      workout_days_per_week: 4,
+      time_per_session: 60,
+      preferences: ["Compound exercises", "Progressive overload"],
+      limitations: []
     };
   }
 
