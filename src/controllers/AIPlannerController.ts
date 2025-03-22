@@ -71,27 +71,48 @@ export class AIPlannerController {
   }
 
   // New method for generating workout plans using Gemini API
-  static async generateWorkoutPlan(request: WorkoutPlanRequest): Promise<WorkoutPlan> {
+  static async generateWorkoutPlan(request: WorkoutPlanRequest): Promise<WorkoutPlanResponse> {
     try {
       if (this.useApi) {
-        // Use the API service to call the backend
-        const response = await ApiService.post<WorkoutPlanResponse>(this.WORKOUT_ENDPOINT, request);
-        return response.plan;
+        // Use the WorkoutPlannerService
+        return await WorkoutPlannerService.generateWorkoutPlan(request);
       } else {
-        // Fallback to mock data if API is not available
-        console.error('API is not enabled. Please set useApi to true to use the Gemini API.');
-        throw new Error('API is not enabled. Please set useApi to true to use the Gemini API.');
+        // Fallback to mock data
+        console.log("Generating workout plan based on request:", request);
+        
+        // Create a mock workout plan
+        const mockPlan: WorkoutPlan = {
+          id: "mock-1",
+          title: "Sample Workout Plan",
+          description: "A personalized workout plan based on your preferences",
+          fitness_level: request.fitness_level,
+          goals: request.goals,
+          workout_days: [
+            {
+              day: "Day 1",
+              focus: "Upper Body",
+              exercises: [
+                {
+                  name: "Push-ups",
+                  sets: 3,
+                  reps: "10-12",
+                  rest_time: "60s",
+                  muscle_groups: ["chest", "shoulders", "triceps"],
+                  difficulty: "beginner"
+                }
+              ]
+            }
+          ]
+        };
+        
+        return {
+          plan: mockPlan,
+          message: "Mock workout plan generated successfully"
+        };
       }
     } catch (error) {
-      // Check if the error is related to the API key
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.toLowerCase().includes('api key')) {
-        console.error('Invalid Gemini API key. Please check your API key in the backend .env file.');
-        throw new Error('Invalid Gemini API key. Please check your API key in the backend .env file.');
-      } else {
-        console.error('Failed to generate workout plan:', error);
-        throw error;
-      }
+      console.error("Error generating workout plan:", error);
+      throw error;
     }
   }
 

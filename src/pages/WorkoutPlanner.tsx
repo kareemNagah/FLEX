@@ -37,28 +37,29 @@ const WorkoutPlanner = () => {
     }));
   };
 
-  const generatePlan = async () => {
-    setIsGenerating(true);
-    
-    try {
-      const plan = await AIPlannerController.generateWorkoutPlan(planRequest);
-      setGeneratedPlan(plan);
-      setIsEditing(false);
-      
+  const generatePlanMutation = useMutation({
+    mutationFn: (request: WorkoutPlanRequest) => AIPlannerController.generateWorkoutPlan(request),
+    onSuccess: (response: WorkoutPlanResponse) => {
+      setGeneratedPlan(response.plan);
+      queryClient.invalidateQueries({ queryKey: ['workoutPlan'] });
       toast({
         title: "Workout Plan Generated!",
         description: "Your personalized workout plan is ready to review.",
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error generating workout plan:", error);
       toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "There was an error generating your workout plan. Please try again.",
+        title: "Error",
+        description: "Failed to generate workout plan. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsGenerating(false);
     }
+  });
+
+  const handleGeneratePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    generatePlanMutation.mutate(planRequest);
   };
 
   const savePlan = () => {
