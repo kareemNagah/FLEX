@@ -5,26 +5,39 @@ from datetime import datetime
 import json
 import uuid
 import google.generativeai as genai
+import pathlib
+from config import settings, GeminiModels
 
-# Get Google Gemini API key from environment variables
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Validate the API key
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it in your .env file.")
-
-# Check if the API key has a valid format (basic check)
-if not GEMINI_API_KEY.startswith("AIza"):
-    raise ValueError("GEMINI_API_KEY appears to be invalid. Google API keys typically start with 'AIza'. Please check your .env file.")
-
-# Configure Google Generative AI with the API key
+# Configure Google Generative AI with the API key from settings
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
+    # Validate the API key
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it in your .env file.")
+
+    # Check if the API key has a valid format (basic check)
+    if not settings.gemini_api_key.startswith("AIza"):
+        raise ValueError("GEMINI_API_KEY appears to be invalid. Google API keys typically start with 'AIza'. Please check your .env file.")
+    
+    # Configure Gemini with the API key from settings and set API version
+    genai.configure(
+        api_key=settings.gemini_api_key,
+        transport="rest",
+        client_options={"api_endpoint": "generativelanguage.googleapis.com"}
+    )
     
     # Test the API key with a simple request
     def test_gemini_api_key():
         try:
-            model = genai.GenerativeModel(model_name="gemini-pro")
+            # Use the model name from settings with correct API version
+            model = genai.GenerativeModel(
+                model_name=settings.gemini_model,
+                generation_config={
+                    "temperature": 0.9,
+                    "top_p": 1,
+                    "top_k": 1,
+                    "max_output_tokens": 2048,
+                }
+            )
             response = model.generate_content("Hello, this is a test request to verify API key validity.")
             return True
         except Exception as e:
@@ -39,6 +52,7 @@ try:
     
 except Exception as e:
     raise ValueError(f"Failed to configure Google Generative AI: {str(e)}. Please check your API key.")
+
 
 # Mock database for workout plans (replace with actual database in production)
 workout_plans_db = {}
@@ -110,7 +124,7 @@ class AIPlannerController:
             
             # Initialize Gemini model
             model = genai.GenerativeModel(
-                model_name="gemini-pro",
+                model_name=settings.gemini_model,
                 generation_config=generation_config
             )
             
@@ -120,7 +134,7 @@ class AIPlannerController:
             
             # Call Gemini API
             try:
-                response = await model.generate_content_async(full_prompt)
+                response = model.generate_content(full_prompt)
                 
                 # Extract the response content
                 result = response.text
